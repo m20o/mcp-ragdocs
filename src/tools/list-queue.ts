@@ -1,10 +1,13 @@
-import { BaseTool } from './base-tool.js';
-import { ToolDefinition, McpToolResponse } from '../types.js';
-import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
-import fs from 'fs/promises';
-import path from 'path';
+import fs from "fs/promises";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
+import { McpToolResponse, ToolDefinition } from "../types.js";
+import { BaseTool } from "./base-tool.js";
 
-const QUEUE_FILE = path.join(process.cwd(), 'queue.txt');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const rootDir = path.join(__dirname, "../..");
+const QUEUE_FILE = path.join(rootDir, "queue.txt");
 
 export class ListQueueTool extends BaseTool {
   constructor() {
@@ -13,10 +16,11 @@ export class ListQueueTool extends BaseTool {
 
   get definition(): ToolDefinition {
     return {
-      name: 'list_queue',
-      description: 'List all URLs currently in the documentation processing queue',
+      name: "list_queue",
+      description:
+        "List all URLs currently in the documentation processing queue",
       inputSchema: {
-        type: 'object',
+        type: "object",
         properties: {},
         required: [],
       },
@@ -32,45 +36,46 @@ export class ListQueueTool extends BaseTool {
         return {
           content: [
             {
-              type: 'text',
-              text: 'Queue is empty (queue file does not exist)',
+              type: "text",
+              text: "",
             },
           ],
         };
       }
 
       // Read queue file
-      const content = await fs.readFile(QUEUE_FILE, 'utf-8');
-      const urls = content.split('\n').filter(url => url.trim() !== '');
+      const content = await fs.readFile(QUEUE_FILE, "utf-8");
+      const urls = content.split("\n").filter((url) => url.trim() !== "");
 
       if (urls.length === 0) {
         return {
           content: [
             {
-              type: 'text',
-              text: 'Queue is empty',
+              type: "text",
+              text: "",
             },
           ],
         };
       }
 
+      // Return just the URLs, one per line
       return {
         content: [
           {
-            type: 'text',
-            text: `Queue contains ${urls.length} URLs:\n${urls.join('\n')}`,
+            type: "text",
+            text: urls.join("\n"),
           },
         ],
       };
     } catch (error) {
+      console.error("Error reading queue:", error);
       return {
         content: [
           {
-            type: 'text',
-            text: `Failed to read queue: ${error}`,
+            type: "text",
+            text: "",
           },
         ],
-        isError: true,
       };
     }
   }

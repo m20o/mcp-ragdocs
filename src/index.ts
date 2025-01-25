@@ -1,19 +1,23 @@
 #!/usr/bin/env node
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { ApiClient } from './api-client.js';
-import { HandlerRegistry } from './handler-registry.js';
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { ApiClient } from "./api-client.js";
+import { HandlerRegistry } from "./handler-registry.js";
+import { WebInterface } from "./server.js";
+
+const COLLECTION_NAME = "documentation";
 
 class RagDocsServer {
   private server: Server;
   private apiClient: ApiClient;
   private handlerRegistry: HandlerRegistry;
+  private webInterface: WebInterface;
 
   constructor() {
     this.server = new Server(
       {
-        name: 'mcp-ragdocs',
-        version: '0.1.0',
+        name: "mcp-ragdocs",
+        version: "0.1.0",
       },
       {
         capabilities: {
@@ -24,10 +28,11 @@ class RagDocsServer {
 
     this.apiClient = new ApiClient();
     this.handlerRegistry = new HandlerRegistry(this.server, this.apiClient);
-    
+    this.webInterface = new WebInterface(this.apiClient);
+
     // Error handling
-    this.server.onerror = (error) => console.error('[MCP Error]', error);
-    process.on('SIGINT', async () => {
+    this.server.onerror = (error) => console.error("[MCP Error]", error);
+    process.on("SIGINT", async () => {
       await this.cleanup();
       process.exit(0);
     });
@@ -35,15 +40,34 @@ class RagDocsServer {
 
   private async cleanup() {
     await this.apiClient.cleanup();
+    await this.webInterface.stop();
     await this.server.close();
   }
 
   async run() {
+    try {
+      // Initialize Qdrant collection
+      console.log("Initializing Qdrant collection...");
+      await this.apiClient.initCollection(COLLECTION_NAME);
+      console.log("Qdrant collection initialized successfully");
+
+    // Start web interface
+    this.webInterface.start(3030);
+      console.log("Web interface running on http://localhost:3030");
+
+    // Start MCP server
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.error('RAG Docs MCP server running on stdio');
+      console.log("RAG Docs MCP server running on stdio");
+    } catch (error) {
+      console.error("Failed to initialize server:", error);
+      process.exit(1);
+    }
   }
 }
 
 const server = new RagDocsServer();
-server.run().catch(console.error);
+server.run().catch((error) => {
+  console.error("Fatal error:", error);
+  process.exit(1);
+});

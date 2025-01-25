@@ -1,7 +1,7 @@
-import { QdrantClient } from '@qdrant/js-client-rest';
-import OpenAI from 'openai';
-import { chromium } from 'playwright';
-import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
+import { QdrantClient } from "@qdrant/js-client-rest";
+import OpenAI from "openai";
+import { chromium } from "playwright";
 
 // Environment variables for configuration
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -9,11 +9,9 @@ const QDRANT_URL = process.env.QDRANT_URL;
 const QDRANT_API_KEY = process.env.QDRANT_API_KEY;
 
 if (!QDRANT_URL) {
-  throw new Error('QDRANT_URL environment variable is required for cloud storage');
-}
-
-if (!QDRANT_API_KEY) {
-  throw new Error('QDRANT_API_KEY environment variable is required for cloud storage');
+  throw new Error(
+    "QDRANT_URL environment variable is required for cloud storage"
+  );
 }
 
 export class ApiClient {
@@ -52,13 +50,13 @@ export class ApiClient {
     if (!this.openaiClient) {
       throw new McpError(
         ErrorCode.InvalidRequest,
-        'OpenAI API key not configured'
+        "OpenAI API key not configured"
       );
     }
 
     try {
       const response = await this.openaiClient.embeddings.create({
-        model: 'text-embedding-ada-002',
+        model: "text-embedding-ada-002",
         input: text,
       });
       return response.data[0].embedding;
@@ -73,15 +71,16 @@ export class ApiClient {
   async initCollection(COLLECTION_NAME: string) {
     try {
       const collections = await this.qdrantClient.getCollections();
-      const exists = collections.collections.some(c => c.name === COLLECTION_NAME);
+      const exists = collections.collections.some(
+        (c) => c.name === COLLECTION_NAME
+      );
 
       if (!exists) {
         await this.qdrantClient.createCollection(COLLECTION_NAME, {
           vectors: {
             size: 1536, // OpenAI ada-002 embedding size
-            distance: 'Cosine',
+            distance: "Cosine",
           },
-          // Add optimized settings for cloud deployment
           optimizers_config: {
             default_segment_number: 2,
             memmap_threshold: 20000,
@@ -91,15 +90,18 @@ export class ApiClient {
       }
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message.includes('unauthorized')) {
+        if (error.message.includes("unauthorized")) {
           throw new McpError(
             ErrorCode.InvalidRequest,
-            'Failed to authenticate with Qdrant cloud. Please check your API key.'
+            "Failed to authenticate with Qdrant cloud. Please check your API key."
           );
-        } else if (error.message.includes('ECONNREFUSED') || error.message.includes('ETIMEDOUT')) {
+        } else if (
+          error.message.includes("ECONNREFUSED") ||
+          error.message.includes("ETIMEDOUT")
+        ) {
           throw new McpError(
             ErrorCode.InternalError,
-            'Failed to connect to Qdrant cloud. Please check your QDRANT_URL.'
+            "Failed to connect to Qdrant cloud. Please check your QDRANT_URL."
           );
         }
       }

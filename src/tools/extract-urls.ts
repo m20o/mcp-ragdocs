@@ -1,16 +1,16 @@
-import { BaseTool } from './base-tool.js';
-import { ToolDefinition, McpToolResponse } from '../types.js';
-import { ApiClient } from '../api-client.js';
-import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
-import * as cheerio from 'cheerio';
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
+import * as cheerio from "cheerio";
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+import { ApiClient } from "../api-client.js";
+import { McpToolResponse, ToolDefinition } from "../types.js";
+import { BaseTool } from "./base-tool.js";
 
 // Get current directory in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const QUEUE_FILE = path.join(__dirname, '..', '..', 'queue.txt');
+const QUEUE_FILE = path.join(__dirname, "..", "..", "queue.txt");
 
 export class ExtractUrlsTool extends BaseTool {
   private apiClient: ApiClient;
@@ -22,47 +22,52 @@ export class ExtractUrlsTool extends BaseTool {
 
   get definition(): ToolDefinition {
     return {
-      name: 'extract_urls',
-      description: 'Extract all URLs from a given web page',
+      name: "extract_urls",
+      description: "Extract all URLs from a given web page",
       inputSchema: {
-        type: 'object',
+        type: "object",
         properties: {
           url: {
-            type: 'string',
-            description: 'URL of the page to extract URLs from',
+            type: "string",
+            description: "URL of the page to extract URLs from",
           },
           add_to_queue: {
-            type: 'boolean',
-            description: 'If true, automatically add extracted URLs to the queue',
+            type: "boolean",
+            description:
+              "If true, automatically add extracted URLs to the queue",
             default: false,
           },
         },
-        required: ['url'],
+        required: ["url"],
       },
     };
   }
 
   async execute(args: any): Promise<McpToolResponse> {
-    if (!args.url || typeof args.url !== 'string') {
-      throw new McpError(ErrorCode.InvalidParams, 'URL is required');
+    if (!args.url || typeof args.url !== "string") {
+      throw new McpError(ErrorCode.InvalidParams, "URL is required");
     }
 
     await this.apiClient.initBrowser();
     const page = await this.apiClient.browser.newPage();
 
     try {
-      await page.goto(args.url, { waitUntil: 'networkidle' });
+      await page.goto(args.url, { waitUntil: "networkidle" });
       const content = await page.content();
       const $ = cheerio.load(content);
       const urls = new Set<string>();
 
-      $('a[href]').each((_, element) => {
-        const href = $(element).attr('href');
+      $("a[href]").each((_, element) => {
+        const href = $(element).attr("href");
         if (href) {
           try {
             const url = new URL(href, args.url);
             // Only include URLs from the same domain to avoid external links
-            if (url.origin === new URL(args.url).origin && !url.hash && !url.href.endsWith('#')) {
+            if (
+              url.origin === new URL(args.url).origin &&
+              !url.hash &&
+              !url.href.endsWith("#")
+            ) {
               urls.add(url.href);
             }
           } catch (e) {
@@ -79,17 +84,18 @@ export class ExtractUrlsTool extends BaseTool {
           try {
             await fs.access(QUEUE_FILE);
           } catch {
-            await fs.writeFile(QUEUE_FILE, '');
+            await fs.writeFile(QUEUE_FILE, "");
           }
 
           // Append URLs to queue
-          const urlsToAdd = urlArray.join('\n') + (urlArray.length > 0 ? '\n' : '');
+          const urlsToAdd =
+            urlArray.join("\n") + (urlArray.length > 0 ? "\n" : "");
           await fs.appendFile(QUEUE_FILE, urlsToAdd);
 
           return {
             content: [
               {
-                type: 'text',
+                type: "text",
                 text: `Successfully added ${urlArray.length} URLs to the queue`,
               },
             ],
@@ -98,7 +104,7 @@ export class ExtractUrlsTool extends BaseTool {
           return {
             content: [
               {
-                type: 'text',
+                type: "text",
                 text: `Failed to add URLs to queue: ${error}`,
               },
             ],
@@ -110,8 +116,8 @@ export class ExtractUrlsTool extends BaseTool {
       return {
         content: [
           {
-            type: 'text',
-            text: urlArray.join('\n') || 'No URLs found on this page.',
+            type: "text",
+            text: urlArray.join("\n") || "No URLs found on this page.",
           },
         ],
       };
@@ -119,7 +125,7 @@ export class ExtractUrlsTool extends BaseTool {
       return {
         content: [
           {
-            type: 'text',
+            type: "text",
             text: `Failed to extract URLs: ${error}`,
           },
         ],
