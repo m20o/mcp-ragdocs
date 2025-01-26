@@ -355,6 +355,23 @@ export class WebInterface {
       }
     );
 
+    // Process queue
+    this.app.post(
+      "/process-queue",
+      async (req: Request, res: Response, next: NextFunction) => {
+        try {
+          // Start processing queue in background
+          this.runQueueTool.execute({}).catch((error) => {
+            console.error("Error processing queue:", error);
+          });
+
+          res.json({ message: "Queue processing started" });
+        } catch (error) {
+          next(error);
+        }
+      }
+    );
+
     // Remove documentation (single or multiple)
     this.app.delete(
       "/documents",

@@ -246,6 +246,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
+    // Process queue
+    const processQueueBtn = document.getElementById('processQueueBtn');
+    processQueueBtn.addEventListener('click', async () => {
+        setButtonLoading(processQueueBtn, true, 'Starting queue...');
+        try {
+            const response = await fetch(`${API_BASE_URL}/process-queue`, {
+                method: 'POST'
+            });
+            
+            if (!response.ok) throw new Error('Failed to start queue processing');
+            
+            showToast('Queue processing started');
+            
+            // Do an immediate queue update to show status changes
+            updateQueue();
+            
+        } catch (error) {
+            console.error('Error starting queue:', error);
+            showToast('Failed to start queue processing', 'error');
+        } finally {
+            setButtonLoading(processQueueBtn, false);
+        }
+    });
+    
     // Update queue list
     async function updateQueue() {
         try {
