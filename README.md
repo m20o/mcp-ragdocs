@@ -2,49 +2,62 @@
 
 An MCP server implementation that provides tools for retrieving and processing documentation through vector search, enabling AI assistants to augment their responses with relevant documentation context.
 
+## Table of Contents
+
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Docker Compose Setup](#docker-compose-setup)
+- [Web Interface](#web-interface)
+- [Configuration](#configuration)
+  - [Cline Configuration](#cline-configuration)
+  - [Claude Desktop Configuration](#claude-desktop-configuration)
+- [Acknowledgments](#acknowledgments)
+- [Troubleshooting](#troubleshooting)
+
 ## Features
 
-- Vector-based documentation search and retrieval
-- Support for multiple documentation sources
-- Semantic search capabilities
-- Automated documentation processing
-- Real-time context augmentation for LLMs
+### Tools
 
-## Tools
+1. **search_documentation**
 
-### search_documentation
-Search through stored documentation using natural language queries. Returns matching excerpts with context, ranked by relevance.
+   - Search through the documentation using vector search
+   - Returns relevant chunks of documentation with source information
 
-**Inputs:**
-- `query` (string): The text to search for in the documentation. Can be a natural language query, specific terms, or code snippets.
-- `limit` (number, optional): Maximum number of results to return (1-20, default: 5). Higher limits provide more comprehensive results but may take longer to process.
+2. **list_sources**
 
-### list_sources
-List all documentation sources currently stored in the system. Returns a comprehensive list of all indexed documentation including source URLs, titles, and last update times. Use this to understand what documentation is available for searching or to verify if specific sources have been indexed.
+   - List all available documentation sources
+   - Provides metadata about each source
 
-### extract_urls
-Extract and analyze all URLs from a given web page. This tool crawls the specified webpage, identifies all hyperlinks, and optionally adds them to the processing queue.
+3. **extract_urls**
 
-**Inputs:**
-- `url` (string): The complete URL of the webpage to analyze (must include protocol, e.g., https://). The page must be publicly accessible.
-- `add_to_queue` (boolean, optional): If true, automatically add extracted URLs to the processing queue for later indexing. Use with caution on large sites to avoid excessive queuing.
+   - Extract URLs from text and check if they're already in the documentation
+   - Useful for preventing duplicate documentation
 
-### remove_documentation
-Remove specific documentation sources from the system by their URLs. The removal is permanent and will affect future search results.
+4. **remove_documentation**
 
-**Inputs:**
-- `urls` (string[]): Array of URLs to remove from the database. Each URL must exactly match the URL used when the documentation was added.
+   - Remove documentation from a specific source
+   - Cleans up outdated or irrelevant documentation
 
-### list_queue
-List all URLs currently waiting in the documentation processing queue. Shows pending documentation sources that will be processed when run_queue is called. Use this to monitor queue status, verify URLs were added correctly, or check processing backlog.
+5. **list_queue**
 
-### run_queue
-Process and index all URLs currently in the documentation queue. Each URL is processed sequentially, with proper error handling and retry logic. Progress updates are provided as processing occurs. Long-running operations will process until the queue is empty or an unrecoverable error occurs.
+   - List all items in the processing queue
+   - Shows status of pending documentation processing
 
-### clear_queue
-Remove all pending URLs from the documentation processing queue. Use this to reset the queue when you want to start fresh, remove unwanted URLs, or cancel pending processing. This operation is immediate and permanent - URLs will need to be re-added if you want to process them later.
+6. **run_queue**
 
-## Usage
+   - Process all items in the queue
+   - Automatically adds new documentation to the vector store
+
+7. **clear_queue**
+
+   - Clear all items from the processing queue
+   - Useful for resetting the system
+
+8. **add_documentation**
+   - Add new documentation to the processing queue
+   - Supports various formats and sources
+
+## Quick Start
 
 The RAG Documentation tool is designed for:
 
@@ -54,9 +67,64 @@ The RAG Documentation tool is designed for:
 - Implementing semantic documentation search
 - Augmenting existing knowledge bases
 
+## Docker Compose Setup
+
+The project includes a `docker-compose.yml` file for easy containerized deployment. To start the services:
+
+```bash
+docker-compose up -d
+```
+
+To stop the services:
+
+```bash
+docker-compose down
+```
+
+## Web Interface
+
+The system includes a web interface that can be accessed after starting the Docker Compose services:
+
+1. Open your browser and navigate to: `http://localhost:3030`
+2. The interface provides:
+   - Real-time queue monitoring
+   - Documentation source management
+   - Search interface for testing queries
+   - System status and health checks
+
 ## Configuration
 
-### Usage with Claude Desktop
+### Cline Configuration
+
+Add this to your `cline_mcp_settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "rag-docs": {
+      "command": "node",
+      "args": ["/path/to/your/mcp-ragdocs/build/index.js"],
+      "env": {
+        "OPENAI_API_KEY": "your-api-key-here",
+        "QDRANT_URL": "http://localhost:6333"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "search_documentation",
+        "list_sources",
+        "extract_urls",
+        "remove_documentation",
+        "list_queue",
+        "run_queue",
+        "clear_queue",
+        "add_documentation"
+      ]
+    }
+  }
+}
+```
+
+### Claude Desktop Configuration
 
 Add this to your `claude_desktop_config.json`:
 
@@ -64,30 +132,41 @@ Add this to your `claude_desktop_config.json`:
 {
   "mcpServers": {
     "rag-docs": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@hannesrudolph/mcp-ragdocs"
-      ],
+      "command": "node",
+      "args": ["/path/to/your/mcp-ragdocs/build/index.js"],
       "env": {
-        "OPENAI_API_KEY": "",
-        "QDRANT_URL": "",
-        "QDRANT_API_KEY": ""
+        "OPENAI_API_KEY": "your-api-key-here",
+        "QDRANT_URL": "http://localhost:6333"
       }
     }
   }
 }
 ```
 
-You'll need to provide values for the following environment variables:
-- `OPENAI_API_KEY`: Your OpenAI API key for embeddings generation
-- `QDRANT_URL`: URL of your Qdrant vector database instance
-- `QDRANT_API_KEY`: API key for authenticating with Qdrant
-
-## License
-
-This MCP server is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.
-
 ## Acknowledgments
 
 This project is a fork of [qpd-v/mcp-ragdocs](https://github.com/qpd-v/mcp-ragdocs), originally developed by qpd-v. The original project provided the foundation for this implementation.
+
+Special thanks to the original creator, qpd-v, for their innovative work on the initial version of this MCP server. This fork has been enhanced with additional features and improvements by Rahul Retnan.
+
+## Troubleshooting
+
+### Server Not Starting (Port Conflict)
+
+If the MCP server fails to start due to a port conflict, follow these steps:
+
+1. Identify and kill the process using port 3030:
+
+```bash
+npx kill-port 3030
+```
+
+2. Restart the MCP server
+
+3. If the issue persists, check for other processes using the port:
+
+```bash
+lsof -i :3030
+```
+
+4. You can also change the default port in the configuration if needed
