@@ -1,11 +1,15 @@
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { QdrantClient } from "@qdrant/js-client-rest";
-import OpenAI from "openai";
 import { chromium } from "playwright";
+import { EmbeddingService } from "./services/embeddings.js";
 
 // Environment variables for configuration
+const EMBEDDING_PROVIDER = process.env.EMBEDDING_PROVIDER || 'ollama';
+const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const QDRANT_URL = process.env.QDRANT_URL;
+const FALLBACK_PROVIDER = process.env.FALLBACK_PROVIDER;
+const FALLBACK_MODEL = process.env.FALLBACK_MODEL;
+const QDRANT_URL = process.env.QDRANT_URL || 'http://localhost:6333';
 const QDRANT_API_KEY = process.env.QDRANT_API_KEY;
 
 if (!QDRANT_URL) {
@@ -14,10 +18,21 @@ if (!QDRANT_URL) {
   );
 }
 
+if ((EMBEDDING_PROVIDER === 'openai' || FALLBACK_PROVIDER === 'openai') && !OPENAI_API_KEY) {
+  throw new Error(
+    "OPENAI_API_KEY environment variable is required when using OpenAI as either primary or fallback provider"
+  );
+}
+
+if (EMBEDDING_PROVIDER === 'ollama') {
+  console.warn('Using Ollama as primary provider. Make sure Ollama is running locally.');
+}
+
 export class ApiClient {
   qdrantClient: QdrantClient;
-  openaiClient?: OpenAI;
+  embeddingService: EmbeddingService;
   browser: any;
+  vectorSize: number;
 
   constructor() {
     // Initialize Qdrant client with cloud configuration
@@ -26,12 +41,17 @@ export class ApiClient {
       apiKey: QDRANT_API_KEY,
     });
 
-    // Initialize OpenAI client if API key is provided
-    if (OPENAI_API_KEY) {
-      this.openaiClient = new OpenAI({
-        apiKey: OPENAI_API_KEY,
-      });
-    }
+    // Initialize embedding service with configured provider
+    this.embeddingService = EmbeddingService.createFromConfig({
+      provider: EMBEDDING_PROVIDER as 'ollama' | 'openai',
+      apiKey: EMBEDDING_PROVIDER === 'openai' ? OPENAI_API_KEY : undefined,
+      model: EMBEDDING_MODEL,
+      fallbackProvider: FALLBACK_PROVIDER as 'ollama' | 'openai' | undefined,
+      fallbackApiKey: FALLBACK_PROVIDER === 'openai' ? OPENAI_API_KEY : undefined,
+      fallbackModel: FALLBACK_MODEL
+    });
+
+    this.vectorSize = this.embeddingService.getVectorSize();
   }
 
   async initBrowser() {
@@ -47,20 +67,12 @@ export class ApiClient {
   }
 
   async getEmbeddings(text: string): Promise<number[]> {
-    if (!this.openaiClient) {
-      throw new McpError(
-        ErrorCode.InvalidRequest,
-        "OpenAI API key not configured"
-      );
-    }
-
     try {
-      const response = await this.openaiClient.embeddings.create({
-        model: "text-embedding-ada-002",
-        input: text,
-      });
-      return response.data[0].embedding;
+      return await this.embeddingService.generateEmbeddings(text);
     } catch (error) {
+      if (error instanceof McpError) {
+        throw error;
+      }
       throw new McpError(
         ErrorCode.InternalError,
         `Failed to generate embeddings: ${error}`
@@ -78,7 +90,7 @@ export class ApiClient {
       if (!exists) {
         await this.qdrantClient.createCollection(COLLECTION_NAME, {
           vectors: {
-            size: 1536, // OpenAI ada-002 embedding size
+            size: this.vectorSize, // Dynamic size based on provider
             distance: "Cosine",
           },
           optimizers_config: {

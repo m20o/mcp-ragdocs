@@ -94,6 +94,20 @@ The system includes a web interface that can be accessed after starting the Dock
 
 ## Configuration
 
+### Embeddings Configuration
+
+The system uses Ollama as the default embedding provider for local embeddings generation, with OpenAI available as a fallback option. This setup prioritizes local processing while maintaining reliability through cloud-based fallback.
+
+#### Environment Variables
+
+- `EMBEDDING_PROVIDER`: Choose the primary embedding provider ('ollama' or 'openai', default: 'ollama')
+- `EMBEDDING_MODEL`: Specify the model to use (optional)
+  - For OpenAI: defaults to 'text-embedding-3-small'
+  - For Ollama: defaults to 'nomic-embed-text'
+- `OPENAI_API_KEY`: Required when using OpenAI as provider
+- `FALLBACK_PROVIDER`: Optional backup provider ('ollama' or 'openai')
+- `FALLBACK_MODEL`: Optional model for fallback provider
+
 ### Cline Configuration
 
 Add this to your `cline_mcp_settings.json`:
@@ -105,7 +119,11 @@ Add this to your `cline_mcp_settings.json`:
       "command": "node",
       "args": ["/path/to/your/mcp-ragdocs/build/index.js"],
       "env": {
-        "OPENAI_API_KEY": "your-api-key-here",
+        "EMBEDDING_PROVIDER": "ollama", // default
+        "EMBEDDING_MODEL": "nomic-embed-text", // optional
+        "OPENAI_API_KEY": "your-api-key-here", // required for fallback
+        "FALLBACK_PROVIDER": "openai", // recommended for reliability
+        "FALLBACK_MODEL": "nomic-embed-text", // optional
         "QDRANT_URL": "http://localhost:6333"
       },
       "disabled": false,
@@ -135,13 +153,42 @@ Add this to your `claude_desktop_config.json`:
       "command": "node",
       "args": ["/path/to/your/mcp-ragdocs/build/index.js"],
       "env": {
-        "OPENAI_API_KEY": "your-api-key-here",
+        "EMBEDDING_PROVIDER": "ollama", // default
+        "EMBEDDING_MODEL": "nomic-embed-text", // optional
+        "OPENAI_API_KEY": "your-api-key-here", // required for fallback
+        "FALLBACK_PROVIDER": "openai", // recommended for reliability
+        "FALLBACK_MODEL": "nomic-embed-text", // optional
         "QDRANT_URL": "http://localhost:6333"
       }
     }
   }
 }
 ```
+
+### Default Configuration
+
+The system uses Ollama by default for efficient local embedding generation. For optimal reliability:
+
+1. Install and run Ollama locally
+2. Configure OpenAI as fallback (recommended):
+   ```json
+   {
+     // Ollama is used by default, no need to specify EMBEDDING_PROVIDER
+     "EMBEDDING_MODEL": "nomic-embed-text", // optional
+     "FALLBACK_PROVIDER": "openai",
+     "FALLBACK_MODEL": "text-embedding-3-small",
+     "OPENAI_API_KEY": "your-api-key-here"
+   }
+   ```
+
+This configuration ensures:
+- Fast, local embedding generation with Ollama
+- Automatic fallback to OpenAI if Ollama fails
+- No external API calls unless necessary
+
+Note: The system will automatically use the appropriate vector dimensions based on the provider:
+- Ollama (nomic-embed-text): 768 dimensions
+- OpenAI (text-embedding-3-small): 1536 dimensions
 
 ## Acknowledgments
 
