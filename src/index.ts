@@ -17,7 +17,7 @@ class RagDocsServer {
     this.server = new Server(
       {
         name: "mcp-ragdocs",
-        version: "0.1.0",
+        version: "1.0.0",
       },
       {
         capabilities: {
@@ -53,7 +53,7 @@ class RagDocsServer {
 
       // Start web interface
       await this.webInterface.start();
-      console.log("Web interface running on http://localhost:3030");
+      console.log("Web interface is running");
 
       // Start MCP server
       const transport = new StdioServerTransport();
