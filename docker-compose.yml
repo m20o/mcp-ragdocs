@@ -1,8 +1,7 @@
-version: '3.8'
-
 services:
   qdrant:
     image: qdrant/qdrant:latest
+    restart: always
     ports:
       - "6333:6333"  # REST API
       - "6334:6334"  # GRPC API
@@ -17,4 +16,4 @@ services:
       retries: 3
 
 volumes:
-  qdrant_storage: 
+  qdrant_storage:
