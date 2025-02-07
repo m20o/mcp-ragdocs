@@ -51,13 +51,13 @@ class RagDocsServer {
       await this.apiClient.initCollection(COLLECTION_NAME);
       console.log("Qdrant collection initialized successfully");
 
-    // Start web interface
-    this.webInterface.start(3030);
+      // Start web interface
+      await this.webInterface.start();
       console.log("Web interface running on http://localhost:3030");
 
-    // Start MCP server
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
+      // Start MCP server
+      const transport = new StdioServerTransport();
+      await this.server.connect(transport);
       console.log("RAG Docs MCP server running on stdio");
     } catch (error) {
       console.error("Failed to initialize server:", error);
