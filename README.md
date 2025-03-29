@@ -218,3 +218,36 @@ lsof -i :3030
 ```
 
 4. You can also change the default port in the configuration if needed
+
+### Logging and Debugging
+
+The server includes a custom logging system that safely handles logs when running in stdio mode. This prevents console.log/error statements from interfering with MCP's JSON-RPC communication.
+
+#### Log Levels
+
+- **INFO**: General operational information
+- **ERROR**: Critical failures and errors
+- **WARN**: Warning conditions
+- **DEBUG**: Detailed debugging information (only active in debug mode)
+
+#### Debug Mode
+
+Enable debug mode to see additional logs:
+
+```bash
+# Run with debug mode enabled
+npm run start:debug
+
+# Debug mode with stdio transport (for MCP)
+npm run start:stdio:debug
+```
+
+#### Log Files
+
+When running in debug mode or with stdio transport, logs are written to:
+
+```
+/path/to/mcp-ragdocs/logs/mcp-ragdocs.log
+```
+
+This is especially useful for troubleshooting when integrated with Claude or other MCP clients.

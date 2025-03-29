@@ -17,7 +17,11 @@
     "prepare": "npm run build",
     "watch": "tsc --watch",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
-    "start": "node build/index.js"
+    "start": "node build/index.js",
+    "start:debug": "DEBUG=true node build/index.js",
+    "start:stdio": "TRANSPORT_TYPE=stdio node build/index.js",
+    "start:stdio:debug": "TRANSPORT_TYPE=stdio DEBUG=true node build/index.js",
+    "debug:inspector": "DEBUG=true npx @modelcontextprotocol/inspector build/index.js"
   },
   "keywords": [
     "mcp",

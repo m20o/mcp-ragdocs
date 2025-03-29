@@ -4,6 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { ApiClient } from "./api-client.js";
 import { HandlerRegistry } from "./handler-registry.js";
 import { WebInterface } from "./server.js";
+import { logger } from "./utils/logger.js";
 
 const COLLECTION_NAME = "documentation";
 
@@ -31,7 +32,7 @@ class RagDocsServer {
     this.webInterface = new WebInterface(this.apiClient);
 
     // Error handling
-    this.server.onerror = (error) => console.error("[MCP Error]", error);
+    this.server.onerror = (error) => logger.error("[MCP Error]", error);
     process.on("SIGINT", async () => {
       await this.cleanup();
       process.exit(0);
@@ -47,20 +48,20 @@ class RagDocsServer {
   async run() {
     try {
       // Initialize Qdrant collection
-      console.log("Initializing Qdrant collection...");
+      logger.info("Initializing Qdrant collection...");
       await this.apiClient.initCollection(COLLECTION_NAME);
-      console.log("Qdrant collection initialized successfully");
+      logger.info("Qdrant collection initialized successfully");
 
       // Start web interface
       await this.webInterface.start();
-      console.log("Web interface is running");
+      logger.info("Web interface is running");
 
       // Start MCP server
       const transport = new StdioServerTransport();
       await this.server.connect(transport);
-      console.log("RAG Docs MCP server running on stdio");
+      logger.info("RAG Docs MCP server running on stdio");
     } catch (error) {
-      console.error("Failed to initialize server:", error);
+      logger.error("Failed to initialize server:", error);
       process.exit(1);
     }
   }
@@ -68,6 +69,6 @@ class RagDocsServer {
 
 const server = new RagDocsServer();
 server.run().catch((error) => {
-  console.error("Fatal error:", error);
+  logger.error("Fatal error:", error);
   process.exit(1);
 });

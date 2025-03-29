@@ -2,6 +2,7 @@ import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { chromium } from "playwright";
 import { EmbeddingService } from "./services/embeddings.js";
+import { logger } from "./utils/logger.js";
 
 // Environment variables for configuration
 const EMBEDDING_PROVIDER = process.env.EMBEDDING_PROVIDER || 'ollama';
@@ -25,7 +26,7 @@ if ((EMBEDDING_PROVIDER === 'openai' || FALLBACK_PROVIDER === 'openai') && !OPEN
 }
 
 if (EMBEDDING_PROVIDER === 'ollama') {
-  console.warn('Using Ollama as primary provider. Make sure Ollama is running locally.');
+  logger.warn('Using Ollama as primary provider. Make sure Ollama is running locally.');
 }
 
 export class ApiClient {

@@ -2,6 +2,7 @@ import { BaseTool } from './base-tool.js';
 import { ToolDefinition, McpToolResponse, isDocumentPayload } from '../types.js';
 import { ApiClient } from '../api-client.js';
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import { logger } from '../utils/logger.js';
 
 const COLLECTION_NAME = 'documentation';
 

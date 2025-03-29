@@ -3,6 +3,7 @@ import express, { Application, NextFunction, Request, Response } from "express";
 import fs from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { logger } from "./utils/logger.js";
 import { ApiClient } from "./api-client.js";
 import { ClearQueueTool } from "./tools/clear-queue.js";
 import { ExtractUrlsTool } from "./tools/extract-urls.js";
@@ -107,10 +108,10 @@ export class WebInterface {
       if (!fs.existsSync(this.queuePath)) {
         // Create the file if it doesn't exist
         await fs.promises.writeFile(this.queuePath, "", "utf8");
-        console.log("Queue file created at:", this.queuePath);
+        logger.info("Queue file created at:", this.queuePath);
       }
     } catch (error) {
-      console.error("Error initializing queue file:", error);
+      logger.error("Error initializing queue file:", error);
     }
   }
 
@@ -130,7 +131,7 @@ export class WebInterface {
       res: Response,
       next: NextFunction
     ) => {
-      console.error("API Error:", err);
+      logger.error("API Error:", err);
       const status = err.status || 500;
       const response: ErrorResponse = {
         error: err.message || "Internal server error",
@@ -197,19 +198,19 @@ export class WebInterface {
 
         // Read the queue file directly to get pending items
         const queueContent = await fs.promises.readFile(this.queuePath, "utf8");
-        console.log("Queue file content:", queueContent);
+        logger.debug("Queue file content:", queueContent);
 
         const pendingUrls = queueContent
           .split("\n")
           .filter((line) => line.trim());
-        console.log("Pending URLs:", pendingUrls);
+        logger.debug("Pending URLs:", pendingUrls);
 
         // Get processing status from list-queue tool
         const response = await this.listQueueTool.execute({});
-        console.log("List queue tool response:", response);
+        logger.debug("List queue tool response:", response);
 
         const queueText = response.content[0].text;
-        console.log("Queue text from tool:", queueText);
+        logger.debug("Queue text from tool:", queueText);
 
         const processingItems = queueText
           .split("\n")
@@ -223,7 +224,7 @@ export class WebInterface {
               timestamp: timestamp || new Date().toISOString(),
             };
           });
-        console.log("Processing items:", processingItems);
+        logger.debug("Processing items:", processingItems);
 
         // Combine pending and processing items
         const queue = [
@@ -239,11 +240,11 @@ export class WebInterface {
           // Add processing items
           ...processingItems,
         ];
-        console.log("Final queue:", queue);
+        logger.debug("Final queue:", queue);
 
         res.json(queue);
       } catch (error) {
-        console.error("Error getting queue:", error);
+        logger.error("Error getting queue:", error);
         res.json([]);
       }
     });
@@ -290,7 +291,7 @@ export class WebInterface {
 
           // Start processing queue in background
           this.runQueueTool.execute({}).catch((error) => {
-            console.error("Error processing queue:", error);
+            logger.error("Error processing queue:", error);
           });
 
           res.json(addedItems);
@@ -381,7 +382,7 @@ export class WebInterface {
         try {
           // Start processing queue in background
           this.runQueueTool.execute({}).catch((error) => {
-            console.error("Error processing queue:", error);
+            logger.error("Error processing queue:", error);
           });
 
           res.json({ message: "Queue processing started" });
@@ -494,7 +495,7 @@ export class WebInterface {
   async start() {
     const port = await getAvailablePort(3030);
     this.server = this.app.listen(port, () => {
-      console.log(`Web interface running at http://localhost:${port}`);
+      logger.info(`Web interface running at http://localhost:${port}`);
     });
   }
 
@@ -502,7 +503,7 @@ export class WebInterface {
     if (this.server) {
       return new Promise((resolve) => {
         this.server.close(() => {
-          console.log("Web interface stopped");
+          logger.info("Web interface stopped");
           resolve(true);
         });
       });
